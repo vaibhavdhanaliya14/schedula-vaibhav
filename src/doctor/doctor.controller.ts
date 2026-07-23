@@ -1,32 +1,53 @@
-import { Controller, Get, Post, Body, Patch, UseGuards, Request } from '@nestjs/common';
-import { DoctorService } from './doctor.service';
-import { CreateDoctorProfileDto } from './dto/create-doctor-profile.dto';
-import { UpdateDoctorProfileDto } from './dto/update-doctor-profile.dto';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { DoctorService } from './doctor.service';
+import { CreateDoctorProfileDto } from './dto/create-doctor-profile.dto';
+import { Role } from './dto/role.enum';
+import { UpdateDoctorProfileDto } from './dto/update-doctor-profile.dto';
 
-@Controller('doctor') // The base route is /doctor
+type User = {
+  id: number;
+  email: string;
+  role: Role;
+};
+
+@Controller('doctor/profile')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('DOCTOR') // Protects all routes in this controller for DOCTOR only
+@Roles(Role.Doctor)
 export class DoctorController {
   constructor(private readonly doctorService: DoctorService) {}
 
-  // Maps to POST /doctor/profile
-  @Post('profile')
-  create(@Request() req, @Body() createDoctorDto: CreateDoctorProfileDto) {
-    return this.doctorService.create(req.user.userId, createDoctorDto);
+  @Post()
+  create(
+    @Request() req: { user: User },
+    @Body() createDoctorProfileDto: CreateDoctorProfileDto,
+  ) {
+    const userId = req.user.id;
+    return this.doctorService.create(userId, createDoctorProfileDto);
   }
 
-  // Maps to GET /doctor/profile
-  @Get('profile')
-  findOne(@Request() req) {
-    return this.doctorService.findOne(req.user.userId);
+  @Get()
+  findOne(@Request() req: { user: User }) {
+    const userId = req.user.id;
+    return this.doctorService.findOne(userId);
   }
 
-  // Maps to PATCH /doctor/profile
-  @Patch('profile')
-  update(@Request() req, @Body() updateDoctorDto: UpdateDoctorProfileDto) {
-    return this.doctorService.update(req.user.userId, updateDoctorDto);
+  @Patch()
+  update(
+    @Request() req: { user: User },
+    @Body() updateDoctorProfileDto: UpdateDoctorProfileDto,
+  ) {
+    const userId = req.user.id;
+    return this.doctorService.update(userId, updateDoctorProfileDto);
   }
 }

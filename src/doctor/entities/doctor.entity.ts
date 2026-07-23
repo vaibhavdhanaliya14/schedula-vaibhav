@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToOne,
+  JoinColumn,
+} from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
 @Entity('doctor_profiles')
@@ -12,22 +18,22 @@ export class Doctor {
   @Column()
   specialization: string;
 
-  @Column()
+  @Column('int')
   experience: number;
 
   @Column()
   qualification: string;
 
-  @Column('decimal')
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
   consultationFee: number;
 
-  @Column()
-  consultationHours: string;
+  @Column({ name: 'consultationHours' })
+  availability: string;
 
   @Column({ type: 'text', nullable: true })
-  profileDetails: string;
+  profileDetails?: string;
 
   @OneToOne(() => User, (user) => user.doctorProfile, { onDelete: 'CASCADE' })
-  @JoinColumn()
+  @JoinColumn({ name: 'userId' })
   user: User;
 }
