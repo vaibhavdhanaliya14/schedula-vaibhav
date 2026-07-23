@@ -2,28 +2,30 @@ import { Controller, Get, Post, Body, Patch, UseGuards, Request } from '@nestjs/
 import { DoctorService } from './doctor.service';
 import { CreateDoctorProfileDto } from './dto/create-doctor-profile.dto';
 import { UpdateDoctorProfileDto } from './dto/update-doctor-profile.dto';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
-import { Roles } from 'src/auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
-@Controller('doctor/profile')
+@Controller('doctor') // The base route is /doctor
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('DOCTOR') // Only doctors can access these routes
+@Roles('DOCTOR') // Protects all routes in this controller for DOCTOR only
 export class DoctorController {
   constructor(private readonly doctorService: DoctorService) {}
 
-  @Post()
+  // Maps to POST /doctor/profile
+  @Post('profile')
   create(@Request() req, @Body() createDoctorDto: CreateDoctorProfileDto) {
-    // req.user comes from your Day 2 JWT Strategy
     return this.doctorService.create(req.user.userId, createDoctorDto);
   }
 
-  @Get()
+  // Maps to GET /doctor/profile
+  @Get('profile')
   findOne(@Request() req) {
     return this.doctorService.findOne(req.user.userId);
   }
 
-  @Patch()
+  // Maps to PATCH /doctor/profile
+  @Patch('profile')
   update(@Request() req, @Body() updateDoctorDto: UpdateDoctorProfileDto) {
     return this.doctorService.update(req.user.userId, updateDoctorDto);
   }

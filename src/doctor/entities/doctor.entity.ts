@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn } from 'ty
 import { User } from '../../users/entities/user.entity';
 
 @Entity('doctor_profiles')
-export class DoctorProfile {
+export class Doctor {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -13,7 +13,7 @@ export class DoctorProfile {
   specialization: string;
 
   @Column()
-  experience: number; // in years
+  experience: number;
 
   @Column()
   qualification: string;
@@ -24,10 +24,9 @@ export class DoctorProfile {
   @Column()
   consultationHours: string;
 
-  @Column('text', { nullable: true })
+  @Column({ type: 'text', nullable: true })
   profileDetails: string;
 
-  // Link back to the User
   @OneToOne(() => User, (user) => user.doctorProfile, { onDelete: 'CASCADE' })
   @JoinColumn()
   user: User;

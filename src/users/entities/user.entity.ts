@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToOne } from 'typeorm';
-import { DoctorProfile } from '../../doctor/entities/doctor.entity';
-import { PatientProfile } from '../../patient/entities/patient.entity';
+import { Doctor } from '../../doctor/entities/doctor.entity';
+import { Patient } from '../../patient/entities/patient.entity';
 
 @Entity('users')
 export class User {
@@ -14,12 +14,11 @@ export class User {
   pass: string;
 
   @Column()
-  role: string; // 'DOCTOR' or 'PATIENT'
+  role: string;
 
-  // Establishing the One-to-One relationships (We will create these next!)
-  @OneToOne(() => DoctorProfile, (doctorProfile) => doctorProfile.user)
-  doctorProfile: DoctorProfile;
+  @OneToOne(() => Doctor, (doctor) => doctor.user)
+  doctorProfile: Doctor;
 
-  @OneToOne(() => PatientProfile, (patientProfile) => patientProfile.user)
-  patientProfile: PatientProfile;
+  @OneToOne(() => Patient, (patient) => patient.user)
+  patientProfile: Patient;
 }

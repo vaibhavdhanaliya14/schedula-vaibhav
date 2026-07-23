@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn } from 'ty
 import { User } from '../../users/entities/user.entity';
 
 @Entity('patient_profiles')
-export class PatientProfile {
+export class Patient {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -18,10 +18,9 @@ export class PatientProfile {
   @Column()
   contactDetails: string;
 
-  @Column('text', { nullable: true })
+  @Column({ type: 'text', nullable: true })
   basicHealthInformation: string;
 
-  // Link back to the User
   @OneToOne(() => User, (user) => user.patientProfile, { onDelete: 'CASCADE' })
   @JoinColumn()
   user: User;
