@@ -1,9 +1,14 @@
-import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../users/entities/user.entity'; // Adjust path to your User entity if needed
+import { User } from '../users/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { Role } from '../doctor/dto/role.enum';
 
 @Injectable()
 export class AuthService {
@@ -13,8 +18,10 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async signup(email: string, pass: string, role: string) {
-    const existingUser = await this.userRepository.findOne({ where: { email } });
+  async signup(email: string, pass: string, role: Role) {
+    const existingUser = await this.userRepository.findOne({
+      where: { email },
+    });
     if (existingUser) {
       throw new ConflictException('Email already exists');
     }
@@ -28,7 +35,12 @@ export class AuthService {
     });
 
     await this.userRepository.save(user);
-    return { message: 'User registered successfully', userId: user.id, email: user.email, role: user.role };
+    return {
+      message: 'User registered successfully',
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    };
   }
 
   async login(email: string, pass: string) {
@@ -42,7 +54,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { userId: user.id, email: user.email, role: user.role };
+    const payload = { sub: user.id, email: user.email, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
     };

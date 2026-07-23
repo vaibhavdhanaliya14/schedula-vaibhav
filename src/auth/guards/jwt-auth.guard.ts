@@ -1,5 +1,25 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
 @Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') {}
+export class JwtAuthGuard extends AuthGuard('jwt') {
+  canActivate(context: ExecutionContext) {
+    return super.canActivate(context);
+  }
+
+  handleRequest<TUser>(err: Error | null, user: TUser): TUser {
+    if (err || !user) {
+      throw (
+        err ||
+        new UnauthorizedException(
+          'Authentication required. Please provide a valid token.',
+        )
+      );
+    }
+    return user;
+  }
+}
