@@ -1,29 +1,53 @@
-import { Controller, Get, Post, Body, Patch, UseGuards, Request } from '@nestjs/common';
-import { PatientService } from './patient.service';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Role } from '../doctor/dto/role.enum';
 import { CreatePatientProfileDto } from './dto/create-patient-profile.dto';
 import { UpdatePatientProfileDto } from './dto/update-patient-profile.dto';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
-import { Roles } from 'src/auth/decorators/roles.decorator';
+import { PatientService } from './patient.service';
+
+type User = {
+  id: number;
+  email: string;
+  role: Role;
+};
 
 @Controller('patient/profile')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('PATIENT') // Only patients can access these routes
+@Roles(Role.Patient)
 export class PatientController {
   constructor(private readonly patientService: PatientService) {}
 
   @Post()
-  create(@Request() req, @Body() createPatientDto: CreatePatientProfileDto) {
-    return this.patientService.create(req.user.userId, createPatientDto);
+  create(
+    @Request() req: { user: User },
+    @Body() createPatientProfileDto: CreatePatientProfileDto,
+  ) {
+    const userId = req.user.id;
+    return this.patientService.create(userId, createPatientProfileDto);
   }
 
   @Get()
-  findOne(@Request() req) {
-    return this.patientService.findOne(req.user.userId);
+  findOne(@Request() req: { user: User }) {
+    const userId = req.user.id;
+    return this.patientService.findOne(userId);
   }
 
   @Patch()
-  update(@Request() req, @Body() updatePatientDto: UpdatePatientProfileDto) {
-    return this.patientService.update(req.user.userId, updatePatientDto);
+  update(
+    @Request() req: { user: User },
+    @Body() updatePatientProfileDto: UpdatePatientProfileDto,
+  ) {
+    const userId = req.user.id;
+    return this.patientService.update(userId, updatePatientProfileDto);
   }
 }
