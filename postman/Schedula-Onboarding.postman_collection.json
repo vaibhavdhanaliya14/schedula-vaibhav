@@ -1,19 +1,22 @@
 {
   "info": {
-    "name": "Schedula - Doctor & Patient Onboarding",
-    "description": "Day 3 internship APIs: auth, doctor profile, patient profile, role protection, edge cases.",
+    "name": "Schedula - Scheduling & Appointment APIs",
+    "description": "Relevant backend APIs for auth, profiles, scheduling, booking, cancellation, and rescheduling workflows.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:3000" },
     { "key": "doctorToken", "value": "" },
     { "key": "patientToken", "value": "" },
+    { "key": "doctorId", "value": "1" },
+    { "key": "scheduleId", "value": "1" },
+    { "key": "appointmentId", "value": "1" },
     { "key": "availabilityId", "value": "" },
     { "key": "customAvailabilityId", "value": "" }
   ],
   "item": [
     {
-      "name": "1. Auth",
+      "name": "1. Authentication",
       "item": [
         {
           "name": "Signup Doctor",
@@ -92,10 +95,23 @@
       ]
     },
     {
-      "name": "2. Doctor Profile",
+      "name": "2. Profiles",
       "item": [
         {
           "name": "Create Doctor Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) {",
+                  "  pm.collectionVariables.set('doctorId', String(res.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -120,26 +136,6 @@
           }
         },
         {
-          "name": "Update Doctor Profile",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"consultationFee\": 750,\n  \"availability\": \"Mon-Sat 09:00-18:00\"\n}"
-            },
-            "url": "{{baseUrl}}/doctor/profile"
-          }
-        }
-      ]
-    },
-    {
-      "name": "3. Patient Profile",
-      "item": [
-        {
           "name": "Create Patient Profile",
           "request": {
             "method": "POST",
@@ -163,20 +159,63 @@
             ],
             "url": "{{baseUrl}}/patient/profile"
           }
-        },
+        }
+      ]
+    },
+    {
+      "name": "3. Scheduling",
+      "item": [
         {
-          "name": "Update Patient Profile",
+          "name": "Create Stream Schedule",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.scheduleId) {",
+                  "  pm.collectionVariables.set('scheduleId', String(res.scheduleId));",
+                  "}"
+                ]
+              }
+            }
+          ],
           "request": {
-            "method": "PATCH",
+            "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"age\": 29,\n  \"contactDetails\": \"+91-9123456789\"\n}"
+              "raw": "{\n  \"schedulingType\": \"STREAM\",\n  \"startAt\": \"2100-01-01T10:00:00.000Z\",\n  \"endAt\": \"2100-01-01T12:00:00.000Z\",\n  \"slotDurationMinutes\": 15,\n  \"bufferTimeMinutes\": 5\n}"
             },
-            "url": "{{baseUrl}}/patient/profile"
+            "url": "{{baseUrl}}/scheduling/doctor/schedules"
+          }
+        },
+        {
+          "name": "Create Wave Schedule",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schedulingType\": \"WAVE\",\n  \"startAt\": \"2100-01-02T09:00:00.000Z\",\n  \"endAt\": \"2100-01-02T11:00:00.000Z\",\n  \"maxPatients\": 5\n}"
+            },
+            "url": "{{baseUrl}}/scheduling/doctor/schedules"
+          }
+        },
+        {
+          "name": "Get Doctor Availability",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": "{{baseUrl}}/scheduling/doctors/{{doctorId}}/availability"
           }
         }
       ]
@@ -293,94 +332,79 @@
       ]
     },
     {
-      "name": "5. Edge Cases",
+      "name": "5. Appointments & Edge Cases",
       "item": [
         {
-          "name": "Duplicate Doctor Profile (expect 409)",
+          "name": "Book Stream Appointment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.appointmentId) {",
+                  "  pm.collectionVariables.set('appointmentId', String(res.appointmentId));",
+                  "}"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Dr. Jane Smith\",\n  \"specialization\": \"Cardiology\",\n  \"experience\": 8,\n  \"qualification\": \"MD\",\n  \"consultationFee\": 500,\n  \"availability\": \"Mon-Fri 10:00-17:00\"\n}"
+              "raw": "{\n  \"scheduleId\": {{scheduleId}},\n  \"slotStartAt\": \"2100-01-01T10:00:00.000Z\"\n}"
             },
-            "url": "{{baseUrl}}/doctor/profile"
+            "url": "{{baseUrl}}/scheduling/patient/bookings"
           }
         },
         {
-          "name": "Doctor accessing Patient API (expect 403)",
-          "request": {
-            "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
-            ],
-            "url": "{{baseUrl}}/patient/profile"
-          }
-        },
-        {
-          "name": "Patient accessing Doctor API (expect 403)",
+          "name": "Get My Appointments",
           "request": {
             "method": "GET",
             "header": [
               { "key": "Authorization", "value": "Bearer {{patientToken}}" }
             ],
-            "url": "{{baseUrl}}/doctor/profile"
+            "url": "{{baseUrl}}/scheduling/patient/appointments"
           }
         },
         {
-          "name": "No Token (expect 401)",
+          "name": "Get Doctor Appointments",
           "request": {
             "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/doctor/profile"
-          }
-        },
-        {
-          "name": "Missing Required Fields (expect 400)",
-          "request": {
-            "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
               { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Dr. Incomplete\"\n}"
-            },
-            "url": "{{baseUrl}}/doctor/profile"
+            "url": "{{baseUrl}}/scheduling/doctor/appointments"
           }
         },
         {
-          "name": "Invalid Extra Fields (expect 400)",
+          "name": "Cancel Appointment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": "{{baseUrl}}/scheduling/appointments/{{appointmentId}}/cancel"
+          }
+        },
+        {
+          "name": "Reschedule Appointment",
           "request": {
             "method": "PATCH",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"consultationFee\": 800,\n  \"userId\": 999,\n  \"id\": 1\n}"
+              "raw": "{\n  \"scheduleId\": {{scheduleId}},\n  \"slotStartAt\": \"2100-01-01T10:15:00.000Z\"\n}"
             },
-            "url": "{{baseUrl}}/doctor/profile"
-          }
-        },
-        {
-          "name": "Empty Update Body (expect 400)",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{}"
-            },
-            "url": "{{baseUrl}}/doctor/profile"
+            "url": "{{baseUrl}}/scheduling/appointments/{{appointmentId}}/reschedule"
           }
         },
         {
