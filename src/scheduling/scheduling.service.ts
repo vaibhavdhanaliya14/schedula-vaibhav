@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -81,6 +82,62 @@ export class SchedulingService {
         this.toScheduleResponse(schedule, schedule.appointments ?? []),
       ),
     };
+  }
+
+  async getPatientAppointments(patientUserId: number) {
+    const patient = await this.findPatientProfileByUser(patientUserId);
+
+    const appointments = await this.appointmentRepository.find({
+      where: { patient: { id: patient.id } },
+      relations: { doctor: true, patient: true },
+      order: { startAt: 'DESC' },
+    });
+
+    return appointments.map((appointment) => this.toPatientAppointmentResponse(appointment));
+  }
+
+  async getDoctorAppointments(doctorUserId: number) {
+    const doctor = await this.findDoctorProfileByUser(doctorUserId);
+
+    const appointments = await this.appointmentRepository.find({
+      where: { doctor: { id: doctor.id } },
+      relations: { doctor: true, patient: true },
+      order: { startAt: 'DESC' },
+    });
+
+    return appointments.map((appointment) => this.toDoctorAppointmentResponse(appointment));
+  }
+
+  async cancelAppointment(patientUserId: number, appointmentId: number) {
+    const patient = await this.findPatientProfileByUser(patientUserId);
+
+    const appointment = await this.appointmentRepository.findOne({
+      where: { id: appointmentId },
+      relations: { doctor: true, patient: true },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException('Appointment not found.');
+    }
+
+    if (appointment.patient.id !== patient.id) {
+      throw new ForbiddenException(
+        'You are not allowed to cancel this appointment.',
+      );
+    }
+
+    if (appointment.status === AppointmentStatus.Cancelled) {
+      throw new ConflictException('Appointment is already cancelled.');
+    }
+
+    if (appointment.startAt <= new Date()) {
+      throw new BadRequestException('Past appointments cannot be cancelled.');
+    }
+
+    appointment.status = AppointmentStatus.Cancelled;
+
+    const savedAppointment = await this.appointmentRepository.save(appointment);
+    return this.toAppointmentResponse(savedAppointment);
   }
 
   async bookAppointment(patientUserId: number, dto: BookAppointmentDto) {
@@ -350,6 +407,39 @@ export class SchedulingService {
       capacity,
       booked,
       available: Math.max(capacity - booked, 0),
+    };
+  }
+
+  private toPatientAppointmentResponse(appointment: Appointment) {
+    return {
+      appointmentId: appointment.id,
+      schedulingType: appointment.schedulingType,
+      doctor: {
+        id: appointment.doctor.id,
+        fullName: appointment.doctor.fullName,
+        specialization: appointment.doctor.specialization,
+      },
+      appointmentTime: {
+        startAt: appointment.startAt.toISOString(),
+        endAt: appointment.endAt.toISOString(),
+      },
+      status: appointment.status,
+    };
+  }
+
+  private toDoctorAppointmentResponse(appointment: Appointment) {
+    return {
+      appointmentId: appointment.id,
+      schedulingType: appointment.schedulingType,
+      patient: {
+        id: appointment.patient.id,
+        fullName: appointment.patient.fullName,
+      },
+      appointmentTime: {
+        startAt: appointment.startAt.toISOString(),
+        endAt: appointment.endAt.toISOString(),
+      },
+      status: appointment.status,
     };
   }
 

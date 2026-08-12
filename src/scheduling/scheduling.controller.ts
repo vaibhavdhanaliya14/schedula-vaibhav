@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Request,
   UseGuards,
@@ -55,5 +56,41 @@ export class SchedulingController {
       req.user.id,
       bookAppointmentDto,
     );
+  }
+
+  @Get('patient/appointments')
+  @Roles(Role.Patient)
+  getPatientAppointments(@Request() req: { user: RequestUser }) {
+    return this.schedulingService.getPatientAppointments(req.user.id);
+  }
+
+  @Get('appointments/my')
+  @Roles(Role.Patient)
+  getMyAppointments(@Request() req: { user: RequestUser }) {
+    return this.schedulingService.getPatientAppointments(req.user.id);
+  }
+
+  @Get('doctor/appointments')
+  @Roles(Role.Doctor)
+  getDoctorAppointments(@Request() req: { user: RequestUser }) {
+    return this.schedulingService.getDoctorAppointments(req.user.id);
+  }
+
+  @Patch('appointments/:appointmentId/cancel')
+  @Roles(Role.Patient)
+  cancelAppointment(
+    @Request() req: { user: RequestUser },
+    @Param('appointmentId', ParseIntPipe) appointmentId: number,
+  ) {
+    return this.schedulingService.cancelAppointment(req.user.id, appointmentId);
+  }
+
+  @Patch('patient/appointments/:appointmentId/cancel')
+  @Roles(Role.Patient)
+  cancelPatientAppointment(
+    @Request() req: { user: RequestUser },
+    @Param('appointmentId', ParseIntPipe) appointmentId: number,
+  ) {
+    return this.schedulingService.cancelAppointment(req.user.id, appointmentId);
   }
 }
