@@ -22,17 +22,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     super({
-<<<<<<< HEAD
       jwtFromRequest,
       ignoreExpiration: false,
       secretOrKey: configService.getOrThrow<string>('JWT_SECRET'),
-=======
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ignoreExpiration: false,
-
-      secretOrKey: configService.get<string>('JWT_SECRET'),
->>>>>>> 2a75b99 (feat: implement advanced stream and wave scheduling)
     });
   }
 

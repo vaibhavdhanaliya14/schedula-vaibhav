@@ -61,10 +61,7 @@ const getDatabaseConfig = (configService: ConfigService) => {
     UsersModule,
     DoctorModule,
     PatientModule,
-<<<<<<< HEAD
     AvailabilityModule,
-=======
->>>>>>> 2a75b99 (feat: implement advanced stream and wave scheduling)
     SchedulingModule,
   ],
   controllers: [],
