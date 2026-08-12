@@ -504,5 +504,302 @@
         }
       ]
     }
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+<<<<<<< HEAD
+              "raw": "{\n  \"dayOfWeek\": \"MONDAY\",\n  \"startTime\": \"10:00\",\n  \"endTime\": \"13:00\"\n}"
+            },
+            "url": "{{baseUrl}}/doctor/availability"
+          }
+        },
+        {
+          "name": "Create Monday Second Slot",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dayOfWeek\": \"MONDAY\",\n  \"startTime\": \"15:00\",\n  \"endTime\": \"17:00\"\n}"
+            },
+            "url": "{{baseUrl}}/doctor/availability"
+          }
+        },
+        {
+          "name": "Get Recurring Availability",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": "{{baseUrl}}/doctor/availability"
+          }
+        },
+        {
+          "name": "Update Recurring Availability",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startTime\": \"09:00\",\n  \"endTime\": \"12:00\"\n}"
+            },
+            "url": "{{baseUrl}}/doctor/availability/{{availabilityId}}"
+          }
+        },
+        {
+          "name": "Create Custom Override",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) {",
+                  "  pm.collectionVariables.set('customAvailabilityId', res.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2026-06-15\",\n  \"startTime\": \"14:00\",\n  \"endTime\": \"15:00\"\n}"
+            },
+            "url": "{{baseUrl}}/doctor/availability/override"
+          }
+        },
+        {
+          "name": "Get Availability For Date",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": "{{baseUrl}}/doctor/availability/date?date=2026-06-15"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Appointments & Edge Cases",
+      "item": [
+        {
+          "name": "Book Stream Appointment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.appointmentId) {",
+                  "  pm.collectionVariables.set('appointmentId', String(res.appointmentId));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scheduleId\": {{scheduleId}},\n  \"slotStartAt\": \"2100-01-01T10:00:00.000Z\"\n}"
+            },
+            "url": "{{baseUrl}}/scheduling/patient/bookings"
+          }
+        },
+        {
+=======
+              "raw": "{\n  \"scheduleId\": {{scheduleId}},\n  \"slotStartAt\": \"2100-01-01T10:00:00.000Z\"\n}"
+            },
+            "url": "{{baseUrl}}/scheduling/patient/bookings"
+          }
+        },
+        {
+>>>>>>> c4ec4c0 (chore: clean and organize postman collection for scheduling workflow)
+          "name": "Get My Appointments",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": "{{baseUrl}}/scheduling/patient/appointments"
+          }
+        },
+        {
+          "name": "Get Doctor Appointments",
+          "request": {
+            "method": "GET",
+<<<<<<< HEAD
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": "{{baseUrl}}/scheduling/doctor/appointments"
+          }
+        },
+        {
+          "name": "Cancel Appointment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": "{{baseUrl}}/scheduling/appointments/{{appointmentId}}/cancel"
+          }
+        },
+        {
+          "name": "Reschedule Appointment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scheduleId\": {{scheduleId}},\n  \"slotStartAt\": \"2100-01-01T10:15:00.000Z\"\n}"
+            },
+            "url": "{{baseUrl}}/scheduling/appointments/{{appointmentId}}/reschedule"
+          }
+        },
+        {
+          "name": "Overlapping Availability With Existing Slot (expect 409)",
+          "request": {
+            "method": "POST",
+=======
+>>>>>>> c4ec4c0 (chore: clean and organize postman collection for scheduling workflow)
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+<<<<<<< HEAD
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dayOfWeek\": \"MONDAY\",\n  \"startTime\": \"15:30\",\n  \"endTime\": \"16:30\"\n}"
+            },
+            "url": "{{baseUrl}}/doctor/availability"
+          }
+        },
+        {
+          "name": "Duplicate Existing Slot (expect 409)",
+=======
+            "url": "{{baseUrl}}/scheduling/doctor/appointments"
+          }
+        },
+        {
+          "name": "Cancel Appointment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": "{{baseUrl}}/scheduling/appointments/{{appointmentId}}/cancel"
+          }
+        },
+        {
+          "name": "Reschedule Appointment",
+>>>>>>> c4ec4c0 (chore: clean and organize postman collection for scheduling workflow)
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+<<<<<<< HEAD
+              "raw": "{\n  \"dayOfWeek\": \"MONDAY\",\n  \"startTime\": \"15:00\",\n  \"endTime\": \"17:00\"\n}"
+            },
+            "url": "{{baseUrl}}/doctor/availability"
+          }
+        },
+        {
+          "name": "Invalid Time Range (expect 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dayOfWeek\": \"TUESDAY\",\n  \"startTime\": \"15:00\",\n  \"endTime\": \"13:00\"\n}"
+            },
+            "url": "{{baseUrl}}/doctor/availability"
+          }
+        },
+        {
+          "name": "Invalid Date (expect 400)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": "{{baseUrl}}/doctor/availability/date?date=2026-02-31"
+          }
+        },
+        {
+          "name": "Unavailable Date (expect 404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": "{{baseUrl}}/doctor/availability/date?date=2026-06-16"
+          }
+        },
+        {
+          "name": "Patient Accessing Doctor Availability (expect 403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": "{{baseUrl}}/doctor/availability"
+          }
+        },
+        {
+          "name": "Delete Custom Override Cleanup (expect 200)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": "{{baseUrl}}/doctor/availability/override/{{customAvailabilityId}}"
+          }
+        },
+        {
+          "name": "Delete Recurring Availability Cleanup (expect 200)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": "{{baseUrl}}/doctor/availability/{{availabilityId}}"
+=======
+              "raw": "{\n  \"scheduleId\": {{scheduleId}},\n  \"slotStartAt\": \"2100-01-01T10:15:00.000Z\"\n}"
+            },
+            "url": "{{baseUrl}}/scheduling/appointments/{{appointmentId}}/reschedule"
+>>>>>>> c4ec4c0 (chore: clean and organize postman collection for scheduling workflow)
+          }
+        }
+      ]
+    }
   ]
 }
