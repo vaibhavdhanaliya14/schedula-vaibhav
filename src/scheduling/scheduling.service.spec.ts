@@ -267,4 +267,101 @@ describe('SchedulingService', () => {
       status: AppointmentStatus.Cancelled,
     });
   });
+
+  it('reschedules a stream appointment to another future available slot', async () => {
+    const currentAppointment = {
+      id: 42,
+      schedule: { id: 20, doctor, schedulingType: SchedulingType.Stream },
+      doctor,
+      patient,
+      schedulingType: SchedulingType.Stream,
+      startAt: futureStart,
+      endAt: new Date('2100-01-01T10:15:00.000Z'),
+      status: AppointmentStatus.Booked,
+      tokenNumber: null,
+    };
+
+    const targetSchedule = {
+      id: 99,
+      doctor,
+      schedulingType: SchedulingType.Stream,
+      startAt: new Date('2100-01-02T10:00:00.000Z'),
+      endAt: new Date('2100-01-02T12:00:00.000Z'),
+      slotDurationMinutes: 15,
+      bufferTimeMinutes: 0,
+      appointments: [],
+    };
+
+    appointmentRepository.findOne.mockResolvedValue(currentAppointment);
+    scheduleRepository.findOne.mockResolvedValue(targetSchedule);
+    appointmentRepository.save.mockResolvedValue({
+      ...currentAppointment,
+      schedule: targetSchedule,
+      startAt: targetSchedule.startAt,
+      endAt: new Date('2100-01-02T10:15:00.000Z'),
+    });
+
+    const result = await service.rescheduleAppointment(2, 42, {
+      scheduleId: 99,
+      slotStartAt: '2100-01-02T10:00:00.000Z',
+    });
+
+    expect(result).toMatchObject({
+      appointmentId: 42,
+      schedulingType: SchedulingType.Stream,
+      status: AppointmentStatus.Booked,
+    });
+    expect(result.appointmentTime).toEqual({
+      startAt: '2100-01-02T10:00:00.000Z',
+      endAt: '2100-01-02T10:15:00.000Z',
+    });
+  });
+
+  it('suggests the next available slot when the requested stream slot is already booked', async () => {
+    const currentAppointment = {
+      id: 42,
+      schedule: { id: 20, doctor, schedulingType: SchedulingType.Stream },
+      doctor,
+      patient,
+      schedulingType: SchedulingType.Stream,
+      startAt: futureStart,
+      endAt: new Date('2100-01-01T10:15:00.000Z'),
+      status: AppointmentStatus.Booked,
+      tokenNumber: null,
+    };
+
+    const targetSchedule = {
+      id: 99,
+      doctor,
+      schedulingType: SchedulingType.Stream,
+      startAt: new Date('2100-01-02T10:00:00.000Z'),
+      endAt: new Date('2100-01-02T11:00:00.000Z'),
+      slotDurationMinutes: 15,
+      bufferTimeMinutes: 0,
+      appointments: [
+        {
+          id: 88,
+          startAt: new Date('2100-01-02T10:00:00.000Z'),
+          endAt: new Date('2100-01-02T10:15:00.000Z'),
+          status: AppointmentStatus.Booked,
+        },
+      ],
+    };
+
+    appointmentRepository.findOne.mockResolvedValue(currentAppointment);
+    scheduleRepository.findOne.mockResolvedValue(targetSchedule);
+
+    const result = await service.rescheduleAppointment(2, 42, {
+      scheduleId: 99,
+      slotStartAt: '2100-01-02T10:00:00.000Z',
+    });
+
+    expect(result).toMatchObject({
+      message: expect.stringContaining('Next available'),
+      suggestedAppointment: {
+        startAt: '2100-01-02T10:15:00.000Z',
+        endAt: '2100-01-02T10:30:00.000Z',
+      },
+    });
+  });
 });

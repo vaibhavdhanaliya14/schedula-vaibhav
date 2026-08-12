@@ -134,14 +134,72 @@ export class SchedulingService {
       throw new ConflictException('Appointment is already cancelled.');
     }
 
-    if (appointment.startAt <= new Date()) {
-      throw new BadRequestException('Past appointments cannot be cancelled.');
+    if (this.isWithinThirtyMinuteCutoff(appointment.startAt)) {
+      throw new BadRequestException(
+        'Appointments starting within 30 minutes cannot be cancelled.',
+      );
     }
 
     appointment.status = AppointmentStatus.Cancelled;
 
     const savedAppointment = await this.appointmentRepository.save(appointment);
     return this.toAppointmentResponse(savedAppointment);
+  }
+
+  async rescheduleAppointment(
+    patientUserId: number,
+    appointmentId: number,
+    dto: BookAppointmentDto,
+  ) {
+    const patient = await this.findPatientProfileByUser(patientUserId);
+
+    const appointment = await this.appointmentRepository.findOne({
+      where: { id: appointmentId },
+      relations: { doctor: true, patient: true, schedule: true },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException('Appointment not found.');
+    }
+
+    if (appointment.patient.id !== patient.id) {
+      throw new ForbiddenException(
+        'You are not allowed to reschedule this appointment.',
+      );
+    }
+
+    if (appointment.status === AppointmentStatus.Cancelled) {
+      throw new ConflictException('Cancelled appointments cannot be rescheduled.');
+    }
+
+    if (appointment.startAt <= new Date()) {
+      throw new BadRequestException('Past appointments cannot be rescheduled.');
+    }
+
+    if (this.isWithinThirtyMinuteCutoff(appointment.startAt)) {
+      throw new BadRequestException(
+        'Appointments starting within 30 minutes cannot be rescheduled.',
+      );
+    }
+
+    const targetSchedule = await this.scheduleRepository.findOne({
+      where: { id: dto.scheduleId },
+      relations: { doctor: true, appointments: { patient: true } },
+    });
+
+    if (!targetSchedule) {
+      throw new NotFoundException('Schedule not found.');
+    }
+
+    if (targetSchedule.schedulingType !== appointment.schedulingType) {
+      throw new BadRequestException('Invalid scheduling type for this appointment.');
+    }
+
+    if (appointment.schedulingType === SchedulingType.Stream) {
+      return this.rescheduleStreamAppointment(patient, appointment, targetSchedule, dto);
+    }
+
+    return this.rescheduleWaveAppointment(patient, appointment, targetSchedule);
   }
 
   async bookAppointment(patientUserId: number, dto: BookAppointmentDto) {
@@ -250,6 +308,158 @@ export class SchedulingService {
 
     const savedAppointment = await this.appointmentRepository.save(appointment);
     return this.toAppointmentResponse(savedAppointment);
+  }
+
+  private async rescheduleStreamAppointment(
+    patient: Patient,
+    appointment: Appointment,
+    targetSchedule: DoctorSchedule,
+    dto: BookAppointmentDto,
+  ) {
+    if (!dto.slotStartAt) {
+      throw new BadRequestException(
+        'slotStartAt is required for STREAM scheduling.',
+      );
+    }
+
+    if (appointment.schedule.id === targetSchedule.id) {
+      const sameSlot = appointment.startAt.getTime() === new Date(dto.slotStartAt).getTime();
+      if (sameSlot) {
+        throw new ConflictException('Rescheduling to the same slot/time is not allowed.');
+      }
+    }
+
+    const requestedStartAt = this.parseDate(dto.slotStartAt, 'slotStartAt');
+    const targetSlots = this.generateStreamSlots(targetSchedule);
+    const selectedSlot = targetSlots.find(
+      (slot) => slot.startAt.getTime() === requestedStartAt.getTime(),
+    );
+
+    if (!selectedSlot) {
+      const suggestion = this.findNextAvailableStreamSlot(targetSchedule, appointment.id);
+      return {
+        message: 'Requested stream slot is unavailable. Next available appointment suggestion:',
+        suggestedAppointment: suggestion,
+      };
+    }
+
+    if (selectedSlot.startAt <= new Date()) {
+      const suggestion = this.findNextAvailableStreamSlot(targetSchedule, appointment.id);
+      return {
+        message: 'Requested stream slot is unavailable. Next available appointment suggestion:',
+        suggestedAppointment: suggestion,
+      };
+    }
+
+    const isAlreadyBooked = (targetSchedule.appointments ?? []).some(
+      (existingAppointment) =>
+        existingAppointment.id !== appointment.id &&
+        existingAppointment.startAt.getTime() === selectedSlot.startAt.getTime(),
+    );
+
+    if (isAlreadyBooked) {
+      const suggestion = this.findNextAvailableStreamSlot(targetSchedule, appointment.id);
+      return {
+        message: 'Requested stream slot is unavailable. Next available appointment suggestion:',
+        suggestedAppointment: suggestion,
+      };
+    }
+
+    appointment.schedule = targetSchedule;
+    appointment.doctor = targetSchedule.doctor;
+    appointment.startAt = selectedSlot.startAt;
+    appointment.endAt = selectedSlot.endAt;
+    appointment.status = AppointmentStatus.Booked;
+
+    const savedAppointment = await this.appointmentRepository.save(appointment);
+    return this.toAppointmentResponse(savedAppointment);
+  }
+
+  private async rescheduleWaveAppointment(
+    patient: Patient,
+    appointment: Appointment,
+    targetSchedule: DoctorSchedule,
+  ) {
+    if (appointment.schedule.id === targetSchedule.id) {
+      if (
+        appointment.startAt.getTime() === targetSchedule.startAt.getTime() &&
+        appointment.endAt.getTime() === targetSchedule.endAt.getTime()
+      ) {
+        throw new ConflictException('Rescheduling to the same slot/time is not allowed.');
+      }
+    }
+
+    if (targetSchedule.startAt <= new Date()) {
+      throw new BadRequestException('Past waves cannot be rescheduled.');
+    }
+
+    const bookedCount = (targetSchedule.appointments ?? []).filter(
+      (existingAppointment) => existingAppointment.id !== appointment.id,
+    ).length;
+    const maxPatients = targetSchedule.maxPatients ?? 0;
+
+    if (bookedCount >= maxPatients) {
+      return {
+        message: 'Requested wave is unavailable. Next available appointment suggestion:',
+        suggestedAppointment: this.findNextAvailableWaveSuggestion(targetSchedule, appointment.id),
+      };
+    }
+
+    appointment.schedule = targetSchedule;
+    appointment.doctor = targetSchedule.doctor;
+    appointment.startAt = targetSchedule.startAt;
+    appointment.endAt = targetSchedule.endAt;
+    appointment.tokenNumber = bookedCount + 1;
+    appointment.status = AppointmentStatus.Booked;
+
+    const savedAppointment = await this.appointmentRepository.save(appointment);
+    return this.toAppointmentResponse(savedAppointment);
+  }
+
+  private isWithinThirtyMinuteCutoff(date: Date) {
+    const now = new Date();
+    const cutoffMs = 30 * 60 * 1000;
+    return date.getTime() - now.getTime() <= cutoffMs;
+  }
+
+  private findNextAvailableStreamSlot(schedule: DoctorSchedule, ignoredAppointmentId?: number) {
+    const now = new Date();
+    const alternatives = this.generateStreamSlots(schedule)
+      .filter((slot) => slot.startAt > now)
+      .filter(
+        (slot) =>
+          !(schedule.appointments ?? []).some(
+            (existingAppointment) =>
+              existingAppointment.id !== ignoredAppointmentId &&
+              existingAppointment.startAt.getTime() === slot.startAt.getTime(),
+          ),
+      );
+
+    const next = alternatives[0];
+    if (!next) {
+      return null;
+    }
+
+    return {
+      startAt: next.startAt.toISOString(),
+      endAt: next.endAt.toISOString(),
+    };
+  }
+
+  private findNextAvailableWaveSuggestion(schedule: DoctorSchedule, ignoredAppointmentId?: number) {
+    const occupied = (schedule.appointments ?? []).filter(
+      (existingAppointment) => existingAppointment.id !== ignoredAppointmentId,
+    ).length;
+    const remaining = (schedule.maxPatients ?? 0) - occupied;
+
+    if (remaining <= 0) {
+      return null;
+    }
+
+    return {
+      startAt: schedule.startAt.toISOString(),
+      endAt: schedule.endAt.toISOString(),
+    };
   }
 
   private async validateScheduleConfig(
