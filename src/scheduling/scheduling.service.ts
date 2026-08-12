@@ -93,7 +93,9 @@ export class SchedulingService {
       order: { startAt: 'DESC' },
     });
 
-    return appointments.map((appointment) => this.toPatientAppointmentResponse(appointment));
+    return appointments.map((appointment) =>
+      this.toPatientAppointmentResponse(appointment),
+    );
   }
 
   async getDoctorAppointments(doctorUserId: number) {
@@ -105,7 +107,9 @@ export class SchedulingService {
       order: { startAt: 'DESC' },
     });
 
-    return appointments.map((appointment) => this.toDoctorAppointmentResponse(appointment));
+    return appointments.map((appointment) =>
+      this.toDoctorAppointmentResponse(appointment),
+    );
   }
 
   async cancelAppointment(patientUserId: number, appointmentId: number) {
