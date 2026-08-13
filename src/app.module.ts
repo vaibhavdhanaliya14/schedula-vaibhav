@@ -5,6 +5,7 @@ import { AvailabilityModule } from './availability/availability.module';
 import { AuthModule } from './auth/auth.module';
 import { DoctorModule } from './doctor/doctor.module';
 import { PatientModule } from './patient/patient.module';
+import { SchedulingModule } from './scheduling/scheduling.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -31,6 +32,7 @@ import { UsersModule } from './users/users.module';
     DoctorModule,
     PatientModule,
     AvailabilityModule,
+    SchedulingModule,
   ],
   controllers: [],
   providers: [],

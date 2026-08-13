@@ -6,6 +6,10 @@ import { Role } from './auth/enums/role.enum';
 
 @Controller()
 export class AppController {
+  @Get()
+  getHello(): string {
+    return 'Hello World!';
+  }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.DOCTOR)

@@ -4,6 +4,8 @@ import { Doctor } from './doctor/entities/doctor.entity';
 import { Patient } from './patient/entities/patient.entity';
 import { RecurringAvailability } from './availability/entities/recurring-availability.entity';
 import { CustomAvailability } from './availability/entities/custom-availability.entity';
+import { Appointment } from './scheduling/entities/appointment.entity';
+import { DoctorSchedule } from './scheduling/entities/doctor-schedule.entity';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -14,6 +16,14 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME || 'schedula_db',
   synchronize: false,
   logging: true,
-  entities: [User, Doctor, Patient, RecurringAvailability, CustomAvailability],
+  entities: [
+    User,
+    Doctor,
+    Patient,
+    RecurringAvailability,
+    CustomAvailability,
+    DoctorSchedule,
+    Appointment,
+  ],
   migrations: ['src/migrations/*.ts'],
 });
