@@ -85,6 +85,15 @@ export class SchedulingController {
     return this.schedulingService.cancelAppointment(req.user.id, appointmentId);
   }
 
+  @Patch('doctor/appointments/:appointmentId/cancel')
+  @Roles(Role.Doctor)
+  cancelDoctorAppointment(
+    @Request() req: { user: RequestUser },
+    @Param('appointmentId', ParseIntPipe) appointmentId: number,
+  ) {
+    return this.schedulingService.cancelDoctorAppointment(req.user.id, appointmentId);
+  }
+
   @Patch('patient/appointments/:appointmentId/cancel')
   @Roles(Role.Patient)
   cancelPatientAppointment(

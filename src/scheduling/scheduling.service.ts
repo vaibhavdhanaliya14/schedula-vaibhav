@@ -9,6 +9,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Doctor } from '../doctor/entities/doctor.entity';
 import { Patient } from '../patient/entities/patient.entity';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from '../notification/notification-type.enum';
 import { BookAppointmentDto } from './dto/book-appointment.dto';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { Appointment } from './entities/appointment.entity';
@@ -32,6 +34,7 @@ export class SchedulingService {
     private readonly doctorRepository: Repository<Doctor>,
     @InjectRepository(Patient)
     private readonly patientRepository: Repository<Patient>,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async createDoctorSchedule(userId: number, dto: CreateScheduleDto) {
@@ -143,6 +146,54 @@ export class SchedulingService {
     appointment.status = AppointmentStatus.Cancelled;
 
     const savedAppointment = await this.appointmentRepository.save(appointment);
+    await this.notificationService.createAppointmentNotification(
+      patientUserId,
+      NotificationType.APPOINTMENT_CANCELLED,
+      'Appointment cancelled',
+      `Your appointment scheduled on ${this.formatDate(savedAppointment.startAt)} has been cancelled.`,
+      savedAppointment.id,
+    );
+    return this.toAppointmentResponse(savedAppointment);
+  }
+
+  async cancelDoctorAppointment(doctorUserId: number, appointmentId: number) {
+    const doctor = await this.findDoctorProfileByUser(doctorUserId);
+
+    const appointment = await this.appointmentRepository.findOne({
+      where: { id: appointmentId },
+      relations: { doctor: true, patient: true },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException('Appointment not found.');
+    }
+
+    if (appointment.doctor.id !== doctor.id) {
+      throw new ForbiddenException(
+        'You are not allowed to cancel this appointment.',
+      );
+    }
+
+    if (appointment.status === AppointmentStatus.Cancelled) {
+      throw new ConflictException('Appointment is already cancelled.');
+    }
+
+    if (this.isWithinThirtyMinuteCutoff(appointment.startAt)) {
+      throw new BadRequestException(
+        'Appointments starting within 30 minutes cannot be cancelled.',
+      );
+    }
+
+    appointment.status = AppointmentStatus.Cancelled;
+
+    const savedAppointment = await this.appointmentRepository.save(appointment);
+    await this.notificationService.createAppointmentNotification(
+      appointment.patient.user.id,
+      NotificationType.APPOINTMENT_CANCELLED,
+      'Appointment cancelled',
+      `Your appointment scheduled on ${this.formatDate(savedAppointment.startAt)} has been cancelled.`,
+      savedAppointment.id,
+    );
     return this.toAppointmentResponse(savedAppointment);
   }
 
@@ -277,6 +328,13 @@ export class SchedulingService {
     });
 
     const savedAppointment = await this.appointmentRepository.save(appointment);
+    await this.notificationService.createAppointmentNotification(
+      patient.user.id,
+      NotificationType.APPOINTMENT_BOOKED,
+      'Appointment booked successfully',
+      `Your appointment with ${schedule.doctor.fullName} has been booked successfully for ${this.formatDate(savedAppointment.startAt)}.`,
+      savedAppointment.id,
+    );
     return this.toAppointmentResponse(savedAppointment);
   }
 
@@ -307,6 +365,13 @@ export class SchedulingService {
     });
 
     const savedAppointment = await this.appointmentRepository.save(appointment);
+    await this.notificationService.createAppointmentNotification(
+      patient.user.id,
+      NotificationType.APPOINTMENT_BOOKED,
+      'Appointment booked successfully',
+      `Your appointment with ${schedule.doctor.fullName} has been booked successfully for ${this.formatDate(savedAppointment.startAt)}.`,
+      savedAppointment.id,
+    );
     return this.toAppointmentResponse(savedAppointment);
   }
 
@@ -372,6 +437,13 @@ export class SchedulingService {
     appointment.status = AppointmentStatus.Booked;
 
     const savedAppointment = await this.appointmentRepository.save(appointment);
+    await this.notificationService.createAppointmentNotification(
+      patient.user.id,
+      NotificationType.APPOINTMENT_RESCHEDULED,
+      'Appointment rescheduled',
+      `Your appointment has been rescheduled to ${this.formatDate(savedAppointment.startAt)}.`,
+      savedAppointment.id,
+    );
     return this.toAppointmentResponse(savedAppointment);
   }
 
@@ -413,6 +485,13 @@ export class SchedulingService {
     appointment.status = AppointmentStatus.Booked;
 
     const savedAppointment = await this.appointmentRepository.save(appointment);
+    await this.notificationService.createAppointmentNotification(
+      patient.user.id,
+      NotificationType.APPOINTMENT_RESCHEDULED,
+      'Appointment rescheduled',
+      `Your appointment has been rescheduled to ${this.formatDate(savedAppointment.startAt)}.`,
+      savedAppointment.id,
+    );
     return this.toAppointmentResponse(savedAppointment);
   }
 
@@ -548,6 +627,10 @@ export class SchedulingService {
       throw new BadRequestException(`${fieldName} must be a valid date.`);
     }
     return date;
+  }
+
+  private formatDate(date: Date) {
+    return new Date(date).toISOString();
   }
 
   private generateStreamSlots(schedule: DoctorSchedule) {
