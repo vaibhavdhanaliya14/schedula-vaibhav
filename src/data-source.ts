@@ -1,11 +1,11 @@
 import { DataSource } from 'typeorm';
-import { User } from './users/entities/user.entity';
+import { CustomAvailability } from './availability/entities/custom-availability.entity';
+import { RecurringAvailability } from './availability/entities/recurring-availability.entity';
 import { Doctor } from './doctor/entities/doctor.entity';
 import { Patient } from './patient/entities/patient.entity';
-import { RecurringAvailability } from './availability/entities/recurring-availability.entity';
-import { CustomAvailability } from './availability/entities/custom-availability.entity';
 import { Appointment } from './scheduling/entities/appointment.entity';
 import { DoctorSchedule } from './scheduling/entities/doctor-schedule.entity';
+import { User } from './users/entities/user.entity';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
