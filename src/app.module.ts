@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { DoctorModule } from './doctor/doctor.module';
 import { PatientModule } from './patient/patient.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
+import { NotificationModule } from './notification/notification.module';
 import { UsersModule } from './users/users.module';
 
 const getDatabaseConfig = (configService: ConfigService) => {
@@ -66,6 +67,7 @@ const getDatabaseConfig = (configService: ConfigService) => {
 =======
 >>>>>>> 2a75b99 (feat: implement advanced stream and wave scheduling)
     SchedulingModule,
+    NotificationModule,
   ],
   controllers: [],
   providers: [],

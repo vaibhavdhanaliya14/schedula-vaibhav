@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
 import { Doctor } from '../doctor/entities/doctor.entity';
 import { Patient } from '../patient/entities/patient.entity';
+import { NotificationModule } from '../notification/notification.module';
 import { Appointment } from './entities/appointment.entity';
 import { DoctorSchedule } from './entities/doctor-schedule.entity';
 import { SchedulingController } from './scheduling.controller';
@@ -12,6 +13,7 @@ import { SchedulingService } from './scheduling.service';
   imports: [
     TypeOrmModule.forFeature([DoctorSchedule, Appointment, Doctor, Patient]),
     AuthModule,
+    NotificationModule,
   ],
   controllers: [SchedulingController],
   providers: [SchedulingService],
