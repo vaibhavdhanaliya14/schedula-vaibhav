@@ -1,4 +1,5 @@
 import { Controller, Get, UseGuards, Request } from '@nestjs/common';
+import { AppService } from './app.service';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { Roles } from './auth/decorators/roles.decorator';
@@ -6,9 +7,11 @@ import { Role } from './auth/enums/role.enum';
 
 @Controller()
 export class AppController {
+  constructor(private readonly appService: AppService) {}
+
   @Get()
   getHello(): string {
-    return 'Hello World!';
+    return this.appService.getHello();
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
