@@ -7,7 +7,9 @@
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:3000" },
     { "key": "doctorToken", "value": "" },
-    { "key": "patientToken", "value": "" }
+    { "key": "patientToken", "value": "" },
+    { "key": "availabilityId", "value": "" },
+    { "key": "customAvailabilityId", "value": "" }
   ],
   "item": [
     {
@@ -180,7 +182,118 @@
       ]
     },
     {
-      "name": "4. Edge Cases",
+      "name": "4. Doctor Availability",
+      "item": [
+        {
+          "name": "Create Monday Recurring Slot",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) {",
+                  "  pm.collectionVariables.set('availabilityId', res.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dayOfWeek\": \"MONDAY\",\n  \"startTime\": \"10:00\",\n  \"endTime\": \"13:00\"\n}"
+            },
+            "url": "{{baseUrl}}/doctor/availability"
+          }
+        },
+        {
+          "name": "Create Monday Second Slot",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dayOfWeek\": \"MONDAY\",\n  \"startTime\": \"15:00\",\n  \"endTime\": \"17:00\"\n}"
+            },
+            "url": "{{baseUrl}}/doctor/availability"
+          }
+        },
+        {
+          "name": "Get Recurring Availability",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": "{{baseUrl}}/doctor/availability"
+          }
+        },
+        {
+          "name": "Update Recurring Availability",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startTime\": \"09:00\",\n  \"endTime\": \"12:00\"\n}"
+            },
+            "url": "{{baseUrl}}/doctor/availability/{{availabilityId}}"
+          }
+        },
+        {
+          "name": "Create Custom Override",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) {",
+                  "  pm.collectionVariables.set('customAvailabilityId', res.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2026-06-15\",\n  \"startTime\": \"14:00\",\n  \"endTime\": \"15:00\"\n}"
+            },
+            "url": "{{baseUrl}}/doctor/availability/override"
+          }
+        },
+        {
+          "name": "Get Availability For Date",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": "{{baseUrl}}/doctor/availability/date?date=2026-06-15"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Edge Cases",
       "item": [
         {
           "name": "Duplicate Doctor Profile (expect 409)",
@@ -268,6 +381,101 @@
               "raw": "{}"
             },
             "url": "{{baseUrl}}/doctor/profile"
+          }
+        },
+        {
+          "name": "Overlapping Availability With Existing Slot (expect 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dayOfWeek\": \"MONDAY\",\n  \"startTime\": \"15:30\",\n  \"endTime\": \"16:30\"\n}"
+            },
+            "url": "{{baseUrl}}/doctor/availability"
+          }
+        },
+        {
+          "name": "Duplicate Existing Slot (expect 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dayOfWeek\": \"MONDAY\",\n  \"startTime\": \"15:00\",\n  \"endTime\": \"17:00\"\n}"
+            },
+            "url": "{{baseUrl}}/doctor/availability"
+          }
+        },
+        {
+          "name": "Invalid Time Range (expect 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dayOfWeek\": \"TUESDAY\",\n  \"startTime\": \"15:00\",\n  \"endTime\": \"13:00\"\n}"
+            },
+            "url": "{{baseUrl}}/doctor/availability"
+          }
+        },
+        {
+          "name": "Invalid Date (expect 400)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": "{{baseUrl}}/doctor/availability/date?date=2026-02-31"
+          }
+        },
+        {
+          "name": "Unavailable Date (expect 404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": "{{baseUrl}}/doctor/availability/date?date=2026-06-16"
+          }
+        },
+        {
+          "name": "Patient Accessing Doctor Availability (expect 403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": "{{baseUrl}}/doctor/availability"
+          }
+        },
+        {
+          "name": "Delete Custom Override Cleanup (expect 200)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": "{{baseUrl}}/doctor/availability/override/{{customAvailabilityId}}"
+          }
+        },
+        {
+          "name": "Delete Recurring Availability Cleanup (expect 200)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": "{{baseUrl}}/doctor/availability/{{availabilityId}}"
           }
         }
       ]
