@@ -93,4 +93,18 @@ export class SchedulingController {
   ) {
     return this.schedulingService.cancelAppointment(req.user.id, appointmentId);
   }
+
+  @Patch('appointments/:appointmentId/reschedule')
+  @Roles(Role.Patient)
+  rescheduleAppointment(
+    @Request() req: { user: RequestUser },
+    @Param('appointmentId', ParseIntPipe) appointmentId: number,
+    @Body() bookAppointmentDto: BookAppointmentDto,
+  ) {
+    return this.schedulingService.rescheduleAppointment(
+      req.user.id,
+      appointmentId,
+      bookAppointmentDto,
+    );
+  }
 }
