@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { AppointmentStatus } from './enums/appointment-status.enum';
 import { SchedulingType } from './enums/scheduling-type.enum';
+import { NotificationType } from '../notification/notification-type.enum';
 import { SchedulingService } from './scheduling.service';
 
 const futureStart = new Date('2100-01-01T10:00:00.000Z');
@@ -12,6 +13,9 @@ describe('SchedulingService', () => {
   let appointmentRepository: ReturnType<typeof createAppointmentRepositoryMock>;
   let doctorRepository: ReturnType<typeof createDoctorRepositoryMock>;
   let patientRepository: ReturnType<typeof createPatientRepositoryMock>;
+  let notificationService: {
+    createAppointmentNotification: jest.Mock;
+  };
 
   const doctor = { id: 7, fullName: 'Dr Stream', user: { id: 1 } };
   const patient = { id: 11, fullName: 'Patient One', user: { id: 2 } };
@@ -53,12 +57,16 @@ describe('SchedulingService', () => {
     appointmentRepository = createAppointmentRepositoryMock();
     doctorRepository = createDoctorRepositoryMock();
     patientRepository = createPatientRepositoryMock();
+    notificationService = {
+      createAppointmentNotification: jest.fn().mockResolvedValue({ id: 1 }),
+    };
 
     service = new SchedulingService(
       scheduleRepository as never,
       appointmentRepository as never,
       doctorRepository as never,
       patientRepository as never,
+      notificationService as never,
     );
   });
 
@@ -112,6 +120,13 @@ describe('SchedulingService', () => {
       startAt: '2100-01-01T10:00:00.000Z',
       endAt: '2100-01-01T10:15:00.000Z',
     });
+    expect(notificationService.createAppointmentNotification).toHaveBeenCalledWith(
+      patient.user.id,
+      NotificationType.APPOINTMENT_BOOKED,
+      expect.stringContaining('booked successfully'),
+      expect.stringContaining('Dr Stream'),
+      30,
+    );
   });
 
   it('assigns the next token number for wave booking', async () => {
@@ -266,6 +281,13 @@ describe('SchedulingService', () => {
       appointmentId: 42,
       status: AppointmentStatus.Cancelled,
     });
+    expect(notificationService.createAppointmentNotification).toHaveBeenCalledWith(
+      patient.user.id,
+      NotificationType.APPOINTMENT_CANCELLED,
+      expect.stringContaining('cancelled'),
+      expect.stringContaining('10:00'),
+      42,
+    );
   });
 
   it('reschedules a stream appointment to another future available slot', async () => {
@@ -315,6 +337,13 @@ describe('SchedulingService', () => {
       startAt: '2100-01-02T10:00:00.000Z',
       endAt: '2100-01-02T10:15:00.000Z',
     });
+    expect(notificationService.createAppointmentNotification).toHaveBeenCalledWith(
+      patient.user.id,
+      NotificationType.APPOINTMENT_RESCHEDULED,
+      expect.stringContaining('rescheduled'),
+      expect.stringContaining('2100-01-02'),
+      42,
+    );
   });
 
   it('suggests the next available slot when the requested stream slot is already booked', async () => {
